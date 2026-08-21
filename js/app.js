@@ -44,6 +44,19 @@
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
   }
 
+  // Stopwatch precision display — whole-second base plus a hundredths tail,
+  // returned separately so the tail can be styled smaller in the markup.
+  function fmtStopwatch(totalSeconds) {
+    const s = Math.max(0, totalSeconds);
+    const whole = Math.floor(s);
+    const h = Math.floor(whole / 3600);
+    const m = Math.floor((whole % 3600) / 60);
+    const sec = whole % 60;
+    const cs = Math.min(99, Math.floor((s - whole) * 100));
+    const base = h > 0 ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+    return { base, cs: String(cs).padStart(2, '0') };
+  }
+
   function setRing(fraction, colorVar) {
     // fraction: 0 = empty, 1 = full
     const f = Math.min(1, Math.max(0, fraction));
@@ -81,6 +94,9 @@
   function beep({ count = 2, freq = 880, duration = 0.16, gap = 0.12 } = {}) {
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      // Browsers suspend the audio context on backgrounded tabs — resume before
+      // scheduling, or a finished timer can go silent with no visible error.
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       const now = audioCtx.currentTime;
       for (let i = 0; i < count; i++) {
         const t0 = now + i * (duration + gap);
@@ -131,6 +147,7 @@
     transportEl.hidden = mode === 'clock' || mode === 'alarms';
     lapBtn.hidden = mode !== 'stopwatch';
     sessionDotsEl.hidden = mode !== 'pomodoro';
+    $('ringWrap').className = 'ring-wrap mode-' + mode;
 
     // Reset stage visuals to that mode's controller
     controllers[mode].onEnter();
@@ -156,6 +173,28 @@
       render();
     });
 
+    const handHour = $('handHour');
+    const handMinute = $('handMinute');
+    const handSecond = $('handSecond');
+    const hourTicksG = $('hourTicks');
+
+    // Draw the 12 hour ticks once — thin marks, heavier at 12/3/6/9.
+    (function drawTicks() {
+      const cx = 150, cy = 150, outerR = 138, innerR = 122, majorInnerR = 114;
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * 2 * Math.PI - Math.PI / 2;
+        const isMajor = i % 3 === 0;
+        const rInner = isMajor ? majorInnerR : innerR;
+        const x1 = cx + outerR * Math.cos(angle), y1 = cy + outerR * Math.sin(angle);
+        const x2 = cx + rInner * Math.cos(angle), y2 = cy + rInner * Math.sin(angle);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1.toFixed(2)); line.setAttribute('y1', y1.toFixed(2));
+        line.setAttribute('x2', x2.toFixed(2)); line.setAttribute('y2', y2.toFixed(2));
+        line.setAttribute('class', 'hour-tick' + (isMajor ? ' major' : ''));
+        hourTicksG.appendChild(line);
+      }
+    })();
+
     function render() {
       const now = new Date();
       let h = now.getHours();
@@ -168,8 +207,16 @@
       }
       digitsEl.textContent = `${pad(h)}:${pad(m)}:${pad(s)}${suffix}`;
       subLabelEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-      setRing(s / 60, 'var(--brass)');
-      setTick(s / 60);
+
+      // Real hour/minute/second hands, standard clock-face angles (0deg = 12 o'clock).
+      const h12 = now.getHours() % 12;
+      const hourDeg = (h12 + m / 60) * 30;
+      const minuteDeg = (m + s / 60) * 6;
+      const secondDeg = s * 6;
+      handHour.style.transform = `rotate(${hourDeg}deg)`;
+      handMinute.style.transform = `rotate(${minuteDeg}deg)`;
+      handSecond.style.transform = `rotate(${secondDeg}deg)`;
+
       raf = setTimeout(render, 1000 - now.getMilliseconds());
     }
 
@@ -196,13 +243,20 @@
     const chipsEl = $('countdownChips');
     const hIn = $('cdHours'), mIn = $('cdMinutes'), sIn = $('cdSeconds');
 
+    function fmtChipLabel(mins) {
+      if (mins < 60) return `${mins} min`;
+      const h = Math.floor(mins / 60);
+      const m = Math.round(mins % 60);
+      return m > 0 ? `${h}h ${m}m` : `${h} hr`;
+    }
+
     function renderChips() {
       chipsEl.innerHTML = '';
       presets.forEach((mins) => {
         const chip = document.createElement('button');
         chip.className = 'chip';
         chip.type = 'button';
-        chip.textContent = mins >= 60 ? `${(mins / 60).toFixed(mins % 60 ? 1 : 0)} hr` : `${mins} min`;
+        chip.textContent = fmtChipLabel(mins);
         chip.addEventListener('click', () => {
           if (running) return;
           setDuration(mins * 60);
@@ -290,7 +344,12 @@
 
     return {
       onEnter() {
-        if (!running) { totalSec = readInputs() || totalSec; remainingSec = totalSec; }
+        // Only sync from the input fields when nothing has actually started yet —
+        // otherwise switching tabs mid-countdown would silently reset a paused timer.
+        if (!running && remainingSec === totalSec) {
+          totalSec = readInputs() || totalSec;
+          remainingSec = totalSec;
+        }
         digitsEl.classList.remove('pulse');
         renderChips();
         render();
@@ -336,13 +395,15 @@
       laps.slice().reverse().forEach((l, i) => {
         const li = document.createElement('li');
         const num = laps.length - i;
-        li.innerHTML = `<span>Lap ${num}</span><span>${fmtHMS(l)}</span>`;
+        const { base, cs } = fmtStopwatch(l);
+        li.innerHTML = `<span>Lap ${num}</span><span>${base}<span class="digits-cs">.${cs}</span></span>`;
         lapsList.appendChild(li);
       });
     }
 
     function render() {
-      digitsEl.textContent = fmtHMS(elapsed);
+      const { base, cs } = fmtStopwatch(elapsed);
+      digitsEl.innerHTML = `${base}<span class="digits-cs">.${cs}</span>`;
       subLabelEl.textContent = running ? 'Running' : (elapsed > 0 ? 'Paused' : 'Ready');
       setRing((elapsed % 60) / 60, 'var(--focus-navy)');
       setTick((elapsed % 60) / 60);
@@ -477,7 +538,12 @@
     }
 
     return {
-      onEnter() { digitsEl.classList.remove('pulse'); resetPhase(); },
+      onEnter() {
+        digitsEl.classList.remove('pulse');
+        // Same guard as countdown: don't clobber a paused mid-phase session on re-entry.
+        if (!running && remainingSec === totalSec) resetPhase();
+        else render();
+      },
       onExit() { cancelAnimationFrame(timer); },
       onStart() {
         running = !running;

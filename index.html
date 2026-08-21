@@ -43,11 +43,20 @@
   <!-- ===== Stage: ring + digits, shared by clock/countdown/stopwatch/pomodoro ===== -->
   <main class="stage" id="stage">
 
-    <div class="ring-wrap">
+    <div class="ring-wrap" id="ringWrap">
       <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
         <circle class="ring-track" cx="150" cy="150" r="138"></circle>
         <circle class="ring-progress" id="ringProgress" cx="150" cy="150" r="138"></circle>
         <circle class="ring-tick" id="ringTick" cx="150" cy="12" r="3.5"></circle>
+      </svg>
+
+      <!-- Analog watch face: hour ticks + hour/minute/second hands. Only shown in Clock mode. -->
+      <svg class="hands" id="handsSvg" viewBox="0 0 300 300" aria-hidden="true">
+        <g id="hourTicks"></g>
+        <line class="hand hand-hour" id="handHour" x1="150" y1="150" x2="150" y2="86"></line>
+        <line class="hand hand-minute" id="handMinute" x1="150" y1="150" x2="150" y2="52"></line>
+        <line class="hand hand-second" id="handSecond" x1="150" y1="160" x2="150" y2="40"></line>
+        <circle class="hand-pivot" cx="150" cy="150" r="4.5"></circle>
       </svg>
 
       <div class="readout">

@@ -202,6 +202,73 @@ input {
   transform-origin: 150px 150px;
 }
 
+/* Analog hands overlay — only visible in Clock mode */
+.hands {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+.ring-wrap.mode-clock .hands {
+  display: block;
+}
+
+/* Ring stays as a quiet static face outline in Clock mode; the hands do the telling */
+.ring-wrap.mode-clock .ring-progress,
+.ring-wrap.mode-clock .ring-tick {
+  opacity: 0;
+}
+
+.hour-tick {
+  stroke: var(--line-strong);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.hour-tick.major {
+  stroke: var(--ink-faint);
+  stroke-width: 3;
+}
+
+.hand {
+  stroke-linecap: round;
+  transform-origin: 150px 150px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hand-hour {
+  stroke: var(--ink);
+  stroke-width: 6;
+}
+
+.hand-minute {
+  stroke: var(--ink);
+  stroke-width: 4;
+}
+
+.hand-second {
+  stroke: var(--brass);
+  stroke-width: 2;
+}
+
+.hand-pivot {
+  fill: var(--ink);
+}
+
+/* Digital readout takes a back seat to the hands in Clock mode */
+.ring-wrap.mode-clock .readout {
+  justify-content: flex-end;
+  padding-bottom: 30px;
+}
+
+.ring-wrap.mode-clock .digits {
+  font-size: clamp(20px, 5.5vw, 27px);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
 .readout {
   position: absolute;
   inset: 0;
@@ -224,6 +291,22 @@ input {
 
 .digits.pulse {
   animation: pulse 1s var(--ease) infinite;
+}
+
+.digits-cs {
+  font-size: 0.5em;
+  font-weight: 500;
+  color: var(--ink-soft);
+  letter-spacing: 0;
+  margin-left: 1px;
+}
+
+.ring-wrap.mode-stopwatch .digits {
+  font-size: clamp(28px, 7.5vw, 44px);
+}
+
+.laps li .digits-cs {
+  font-size: 0.85em;
 }
 
 @keyframes pulse {
