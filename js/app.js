@@ -30,6 +30,7 @@
   const resetBtn = $('resetBtn');
   const lapBtn = $('lapBtn');
   const sessionDotsEl = $('sessionDots');
+  const clockMetaEl = $('clockMeta');
   const toastEl = $('toast');
 
   ringProgress.style.strokeDasharray = String(CIRC);
@@ -147,6 +148,7 @@
     transportEl.hidden = mode === 'clock' || mode === 'alarms';
     lapBtn.hidden = mode !== 'stopwatch';
     sessionDotsEl.hidden = mode !== 'pomodoro';
+    clockMetaEl.hidden = mode !== 'clock';
     $('ringWrap').className = 'ring-wrap mode-' + mode;
 
     // Reset stage visuals to that mode's controller
@@ -177,6 +179,8 @@
     const handMinute = $('handMinute');
     const handSecond = $('handSecond');
     const hourTicksG = $('hourTicks');
+    const clockDigitalEl = $('clockDigital');
+    const clockDateEl = $('clockDate');
 
     // Draw the 12 hour ticks once — thin marks, heavier at 12/3/6/9.
     (function drawTicks() {
@@ -205,8 +209,8 @@
         suffix = h >= 12 ? ' PM' : ' AM';
         h = h % 12 || 12;
       }
-      digitsEl.textContent = `${pad(h)}:${pad(m)}:${pad(s)}${suffix}`;
-      subLabelEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+      clockDigitalEl.textContent = `${pad(h)}:${pad(m)}:${pad(s)}${suffix}`;
+      clockDateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
       // Real hour/minute/second hands, standard clock-face angles (0deg = 12 o'clock).
       const h12 = now.getHours() % 12;
@@ -222,7 +226,6 @@
 
     return {
       onEnter() {
-        digitsEl.classList.remove('pulse');
         render();
       },
       onExit() { clearTimeout(raf); }
