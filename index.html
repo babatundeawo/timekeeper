@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Timekeeper</title>
+<meta name="description" content="A clock, countdown, stopwatch, Pomodoro timer, and alarms, in one quiet instrument.">
+<meta name="theme-color" content="#ffffff">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== Header ===== -->
+  <header class="header">
+    <div class="wordmark">
+      <span class="wordmark-mark" aria-hidden="true">◐</span>
+      <span class="wordmark-text">Timekeeper</span>
+    </div>
+    <button class="install-btn" id="installBtn" hidden type="button">Install app</button>
+  </header>
+
+  <!-- ===== Mode switcher ===== -->
+  <nav class="switcher" role="tablist" aria-label="Choose a mode">
+    <button class="switcher-item" role="tab" data-mode="clock" aria-selected="true">Clock</button>
+    <button class="switcher-item" role="tab" data-mode="countdown" aria-selected="false">Countdown</button>
+    <button class="switcher-item" role="tab" data-mode="stopwatch" aria-selected="false">Stopwatch</button>
+    <button class="switcher-item" role="tab" data-mode="pomodoro" aria-selected="false">Focus</button>
+    <button class="switcher-item" role="tab" data-mode="alarms" aria-selected="false">Alarms</button>
+    <span class="switcher-indicator" id="switcherIndicator" aria-hidden="true"></span>
+  </nav>
+
+  <!-- ===== Stage: ring + digits, shared by clock/countdown/stopwatch/pomodoro ===== -->
+  <main class="stage" id="stage">
+
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
+        <circle class="ring-track" cx="150" cy="150" r="138"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="150" cy="150" r="138"></circle>
+        <circle class="ring-tick" id="ringTick" cx="150" cy="12" r="3.5"></circle>
+      </svg>
+
+      <div class="readout">
+        <div class="digits" id="digits">00:00:00</div>
+        <div class="sub" id="subLabel">&nbsp;</div>
+      </div>
+    </div>
+
+    <!-- Pomodoro session dots -->
+    <div class="session-dots" id="sessionDots" hidden></div>
+
+    <!-- Shared transport controls (countdown / stopwatch / pomodoro) -->
+    <div class="transport" id="transport" hidden>
+      <button class="btn btn-ghost" id="resetBtn" type="button">Reset</button>
+      <button class="btn btn-primary" id="startBtn" type="button">Start</button>
+      <button class="btn btn-ghost" id="lapBtn" type="button" hidden>Lap</button>
+    </div>
+
+  </main>
+
+  <!-- ===== Mode panels: mode-specific content below the stage ===== -->
+
+  <!-- Clock options -->
+  <section class="panel" id="panel-clock" data-panel="clock">
+    <label class="toggle">
+      <input type="checkbox" id="clock24h">
+      <span>24-hour time</span>
+    </label>
+  </section>
+
+  <!-- Countdown presets & entry -->
+  <section class="panel" id="panel-countdown" data-panel="countdown" hidden>
+    <div class="chips" id="countdownChips"></div>
+    <div class="time-entry" id="countdownEntry">
+      <div class="entry-field">
+        <input type="number" id="cdHours" min="0" max="23" value="0" inputmode="numeric" aria-label="Hours">
+        <label>hr</label>
+      </div>
+      <div class="entry-field">
+        <input type="number" id="cdMinutes" min="0" max="59" value="5" inputmode="numeric" aria-label="Minutes">
+        <label>min</label>
+      </div>
+      <div class="entry-field">
+        <input type="number" id="cdSeconds" min="0" max="59" value="0" inputmode="numeric" aria-label="Seconds">
+        <label>sec</label>
+      </div>
+      <button class="btn btn-text" id="savePresetBtn" type="button">Save as preset</button>
+    </div>
+  </section>
+
+  <!-- Stopwatch laps -->
+  <section class="panel" id="panel-stopwatch" data-panel="stopwatch" hidden>
+    <ol class="laps" id="lapsList"></ol>
+  </section>
+
+  <!-- Pomodoro settings -->
+  <section class="panel" id="panel-pomodoro" data-panel="pomodoro" hidden>
+    <div class="time-entry">
+      <div class="entry-field">
+        <input type="number" id="pomoFocus" min="1" max="120" value="25" inputmode="numeric" aria-label="Focus minutes">
+        <label>focus</label>
+      </div>
+      <div class="entry-field">
+        <input type="number" id="pomoShort" min="1" max="60" value="5" inputmode="numeric" aria-label="Short break minutes">
+        <label>short</label>
+      </div>
+      <div class="entry-field">
+        <input type="number" id="pomoLong" min="1" max="60" value="15" inputmode="numeric" aria-label="Long break minutes">
+        <label>long</label>
+      </div>
+      <div class="entry-field">
+        <input type="number" id="pomoRounds" min="1" max="12" value="4" inputmode="numeric" aria-label="Rounds before long break">
+        <label>rounds</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- Alarms -->
+  <section class="panel" id="panel-alarms" data-panel="alarms" hidden>
+    <div class="alarm-entry">
+      <input type="time" id="alarmTime" aria-label="Alarm time">
+      <input type="text" id="alarmLabel" placeholder="Label (optional)" maxlength="40">
+      <button class="btn btn-primary btn-compact" id="addAlarmBtn" type="button">Add</button>
+    </div>
+    <div class="alarm-days" id="alarmDays">
+      <button class="day-chip" data-day="0" type="button">S</button>
+      <button class="day-chip" data-day="1" type="button">M</button>
+      <button class="day-chip" data-day="2" type="button">T</button>
+      <button class="day-chip" data-day="3" type="button">W</button>
+      <button class="day-chip" data-day="4" type="button">T</button>
+      <button class="day-chip" data-day="5" type="button">F</button>
+      <button class="day-chip" data-day="6" type="button">S</button>
+    </div>
+    <p class="hint">Repeats only on selected days. Leave none selected for a one-time alarm.</p>
+    <ol class="alarms-list" id="alarmsList"></ol>
+    <p class="hint hint-quiet">Alarms sound while Timekeeper is open in a browser tab or installed window. Keep it running for it to ring.</p>
+  </section>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
