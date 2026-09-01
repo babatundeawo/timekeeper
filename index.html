@@ -6,6 +6,9 @@
 <title>Timekeeper</title>
 <meta name="description" content="A clock, countdown, stopwatch, Pomodoro timer, and alarms, in one quiet instrument.">
 <meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -47,7 +50,11 @@
       <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
         <circle class="ring-track" cx="150" cy="150" r="138"></circle>
         <circle class="ring-progress" id="ringProgress" cx="150" cy="150" r="138"></circle>
-        <circle class="ring-tick" id="ringTick" cx="150" cy="12" r="3.5"></circle>
+        <!-- Parked at the 3 o'clock point (cx = cx-center + r) because the whole
+             .ring svg carries a -90deg CSS rotation (the same trick ring-progress's
+             stroke-dashoffset relies on to start at 12 instead of 3). Starting the
+             tick here means JS's rotate(0deg) lands it at 12, not 9. -->
+        <circle class="ring-tick" id="ringTick" cx="288" cy="150" r="3.5"></circle>
       </svg>
 
       <!-- Analog watch face: hour ticks + hour/minute/second hands. Only shown in Clock mode. -->

@@ -21,8 +21,15 @@
   --font-body: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
 
-  --ring-size: min(64vw, 340px);
+  /* Floor keeps the ring legible on the narrowest phones; ceiling keeps it from
+     ballooning on tablets, since vw alone would keep growing past a comfortable size. */
+  --ring-size: clamp(188px, 62vw, 340px);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +63,7 @@ body {
 .app {
   width: 100%;
   max-width: 560px;
-  padding: 28px 24px 56px;
+  padding: calc(28px + var(--safe-t)) calc(24px + var(--safe-r)) calc(56px + var(--safe-b)) calc(24px + var(--safe-l));
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
@@ -65,10 +72,13 @@ body {
 button {
   font-family: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 input {
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible {
@@ -145,7 +155,8 @@ input {
   color: var(--ink-faint);
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 14px;
+  padding: 13px 14px;
+  min-height: 44px;
   white-space: nowrap;
   transition: color 0.2s var(--ease);
 }
@@ -518,7 +529,7 @@ input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 18px;
+  gap: clamp(10px, 4vw, 18px);
   flex-wrap: wrap;
 }
 
@@ -530,7 +541,7 @@ input {
 }
 
 .entry-field input {
-  width: 58px;
+  width: clamp(42px, 13vw, 58px);
   text-align: center;
   font-family: var(--font-mono);
   font-size: 20px;
@@ -538,7 +549,7 @@ input {
   border-bottom: 1px solid var(--line-strong);
   background: transparent;
   color: var(--ink);
-  padding: 4px 0;
+  padding: 8px 0;
   transition: border-color 0.2s var(--ease);
 }
 
@@ -626,8 +637,8 @@ input {
 }
 
 .day-chip {
-  width: 30px;
-  height: 30px;
+  width: clamp(32px, 9.5vw, 38px);
+  height: clamp(32px, 9.5vw, 38px);
   border-radius: 50%;
   border: 1px solid var(--line-strong);
   background: transparent;
@@ -770,9 +781,47 @@ input {
    Responsive
    ============================================================ */
 
+/* Once a tab row has room to breathe, let the five modes divide it evenly
+   instead of scrolling — reads more like a segmented control on standard
+   phones and up, while the smallest phones keep the scrollable row below. */
+@media (min-width: 420px) {
+  .switcher {
+    overflow-x: visible;
+  }
+  .switcher-item {
+    flex: 1 1 0;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* Smallest phones (older iPhone SE / compact Android) — reclaim margin and
+   tighten the controls that would otherwise wrap awkwardly. */
 @media (max-width: 380px) {
-  .app { padding: 20px 16px 44px; }
-  .time-entry { gap: 12px; }
+  .app { padding: calc(20px + var(--safe-t)) calc(16px + var(--safe-r)) calc(44px + var(--safe-b)) calc(16px + var(--safe-l)); }
+  .header { margin-bottom: 20px; }
+  .stage { padding-top: 28px; }
+  .time-entry { gap: 10px; }
+  .transport { gap: 10px; }
+  .btn-primary { min-width: 104px; padding: 12px 20px; }
+}
+
+/* Very narrow phones in the 320-359px class — trim once more so the
+   pomodoro row (4 fields) and alarm entry never force a scrollbar. */
+@media (max-width: 359px) {
+  .entry-field input { width: clamp(38px, 15vw, 48px); font-size: 18px; }
+  .alarm-entry { gap: 8px; }
+  .switcher-item { padding-left: 10px; padding-right: 10px; font-size: 13.5px; }
+}
+
+/* Tablets and large phones in landscape — the single-column layout still
+   suits a utility instrument like this, so just give it more breathing room
+   rather than reflowing into columns. */
+@media (min-width: 600px) {
+  .app { max-width: 620px; padding-top: calc(40px + var(--safe-t)); padding-bottom: calc(64px + var(--safe-b)); }
+  .stage { padding-top: 48px; }
+  .switcher-item { font-size: 15px; padding-top: 15px; padding-bottom: 15px; }
 }
 
 /* ============================================================
