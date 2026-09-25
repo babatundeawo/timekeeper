@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Timekeeper</title>
 <meta name="description" content="A clock, countdown, stopwatch, Pomodoro timer, and alarms, in one quiet instrument.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f12" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19,8 +21,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/style.css">
+
+<!-- Applied before paint so the correct theme renders on first frame, no flash. -->
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('tk:theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
+
+<div class="grain" aria-hidden="true"></div>
 
 <div class="app">
 
@@ -30,24 +44,45 @@
       <span class="wordmark-mark" aria-hidden="true">◐</span>
       <span class="wordmark-text">Timekeeper</span>
     </div>
-    <button class="install-btn" id="installBtn" hidden type="button">Install app</button>
+    <div class="header-actions">
+      <button class="icon-btn" id="soundToggle" type="button" aria-label="Mute sound" aria-pressed="false">
+        <svg class="icon icon-sound-on" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M18.8 6.2a8.5 8.5 0 0 1 0 11.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/></svg>
+        <svg class="icon icon-sound-off" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor"/><path d="M16 9l4.5 6M20.5 9 16 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></g></svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" fill="currentColor"/></svg>
+      </button>
+      <button class="install-btn" id="installBtn" hidden type="button">Install app</button>
+    </div>
   </header>
 
   <!-- ===== Mode switcher ===== -->
   <nav class="switcher" role="tablist" aria-label="Choose a mode">
+    <span class="switcher-pill" id="switcherPill" aria-hidden="true"></span>
     <button class="switcher-item" role="tab" data-mode="clock" aria-selected="true">Clock</button>
     <button class="switcher-item" role="tab" data-mode="countdown" aria-selected="false">Countdown</button>
     <button class="switcher-item" role="tab" data-mode="stopwatch" aria-selected="false">Stopwatch</button>
     <button class="switcher-item" role="tab" data-mode="pomodoro" aria-selected="false">Focus</button>
     <button class="switcher-item" role="tab" data-mode="alarms" aria-selected="false">Alarms</button>
-    <span class="switcher-indicator" id="switcherIndicator" aria-hidden="true"></span>
   </nav>
 
   <!-- ===== Stage: ring + digits, shared by clock/countdown/stopwatch/pomodoro ===== -->
   <main class="stage" id="stage">
 
     <div class="ring-wrap" id="ringWrap">
+      <div class="ring-glow" aria-hidden="true"></div>
       <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
+        <defs>
+          <linearGradient id="ringGradBrass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d9b878"/>
+            <stop offset="100%" stop-color="#9d7a45"/>
+          </linearGradient>
+          <linearGradient id="ringGradNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3a4f85"/>
+            <stop offset="100%" stop-color="#161f38"/>
+          </linearGradient>
+        </defs>
         <circle class="ring-track" cx="150" cy="150" r="138"></circle>
         <circle class="ring-progress" id="ringProgress" cx="150" cy="150" r="138"></circle>
         <!-- Parked at the 3 o'clock point (cx = cx-center + r) because the whole
@@ -67,7 +102,7 @@
       </svg>
 
       <div class="readout">
-        <div class="digits" id="digits">00:00:00</div>
+        <div class="digits" id="digits" aria-live="off">00:00:00</div>
         <div class="sub" id="subLabel">&nbsp;</div>
       </div>
     </div>
@@ -88,7 +123,14 @@
       <button class="btn btn-ghost" id="resetBtn" type="button">Reset</button>
       <button class="btn btn-primary" id="startBtn" type="button">Start</button>
       <button class="btn btn-ghost" id="lapBtn" type="button" hidden>Lap</button>
+      <button class="btn btn-ghost btn-icon-text" id="addMinuteBtn" type="button" hidden>+1:00</button>
     </div>
+
+    <p class="kbd-hint" id="kbdHint" aria-hidden="true">
+      <span><kbd>Space</kbd> start/pause</span>
+      <span><kbd>R</kbd> reset</span>
+      <span><kbd>1–5</kbd> switch</span>
+    </p>
 
   </main>
 
@@ -170,6 +212,20 @@
     <p class="hint hint-quiet">Alarms sound while Timekeeper is open in a browser tab or installed window. Keep it running for it to ring.</p>
   </section>
 
+</div>
+
+<!-- Full-screen alarm-ringing takeover: replaces the old beep-and-toast with
+     something you can actually act on — stop it, or push it back 5 minutes. -->
+<div class="ring-overlay" id="alarmRingOverlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="alarmRingLabel">
+  <div class="ring-overlay-card">
+    <div class="ring-overlay-icon" aria-hidden="true">⏰</div>
+    <div class="ring-overlay-time" id="alarmRingTime">00:00</div>
+    <div class="ring-overlay-label" id="alarmRingLabel">Alarm</div>
+    <div class="ring-overlay-actions">
+      <button class="btn btn-ghost btn-lg" id="alarmSnoozeBtn" type="button">Snooze 5m</button>
+      <button class="btn btn-primary btn-lg" id="alarmStopBtn" type="button">Stop</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

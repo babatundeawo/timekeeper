@@ -1,4 +1,4 @@
-const CACHE = 'timekeeper-v2';
+const CACHE = 'timekeeper-v3';
 const ASSETS = [
   './',
   './index.html',

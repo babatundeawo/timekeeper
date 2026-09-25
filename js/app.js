@@ -90,9 +90,53 @@
     }
   };
 
+  // A light, optional touch of tactile feedback on supported devices —
+  // never load-bearing, so any failure is silently ignored.
+  function haptic(ms = 10) {
+    try { if (navigator.vibrate) navigator.vibrate(ms); } catch { /* unavailable */ }
+  }
+
+  /* ---------- Sound toggle ---------- */
+  let soundOn = store.get('soundOn', true);
+  const soundToggleBtn = $('soundToggle');
+  function applySoundUI() {
+    soundToggleBtn.setAttribute('aria-pressed', String(!soundOn));
+    soundToggleBtn.setAttribute('aria-label', soundOn ? 'Mute sound' : 'Unmute sound');
+  }
+  applySoundUI();
+  soundToggleBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    store.set('soundOn', soundOn);
+    applySoundUI();
+    haptic();
+    toast(soundOn ? 'Sound on' : 'Sound muted');
+  });
+
+  /* ---------- Theme toggle ---------- */
+  const themeToggleBtn = $('themeToggle');
+  function currentTheme() {
+    const stored = store.get('theme', null);
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyTheme(theme, persist) {
+    if (persist) {
+      document.documentElement.setAttribute('data-theme', theme);
+      store.set('theme', theme);
+    }
+    themeToggleBtn.setAttribute('aria-pressed', String(theme === 'dark'));
+    themeToggleBtn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+  }
+  applyTheme(currentTheme(), false);
+  themeToggleBtn.addEventListener('click', () => {
+    applyTheme(currentTheme() === 'dark' ? 'light' : 'dark', true);
+    haptic();
+  });
+
   // Self-contained beep via Web Audio API — no external audio asset needed.
   let audioCtx = null;
   function beep({ count = 2, freq = 880, duration = 0.16, gap = 0.12 } = {}) {
+    if (!soundOn) return;
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       // Browsers suspend the audio context on backgrounded tabs — resume before
@@ -125,13 +169,15 @@
 
   const modes = ['clock', 'countdown', 'stopwatch', 'pomodoro', 'alarms'];
   const switcherItems = Array.from(document.querySelectorAll('.switcher-item'));
-  const indicator = $('switcherIndicator');
+  const indicator = $('switcherPill');
+  const stageEl = $('stage');
+  const addMinuteBtn = $('addMinuteBtn');
   let currentMode = store.get('mode', 'clock');
 
   function positionIndicator() {
     const active = switcherItems.find(b => b.dataset.mode === currentMode);
     if (!active) return;
-    indicator.style.left = active.offsetLeft + 'px';
+    indicator.style.transform = `translateX(${active.offsetLeft - 3}px)`;
     indicator.style.width = active.offsetWidth + 'px';
   }
 
@@ -142,11 +188,17 @@
     currentMode = mode;
     store.set('mode', mode);
 
+    // Fade the stage out instantly (no transition), swap the content, then
+    // let the transition re-enable on the next frame so it fades back in —
+    // a small touch that keeps mode switches from feeling like a hard cut.
+    stageEl.classList.add('mode-switching');
+
     switcherItems.forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
     document.querySelectorAll('.panel').forEach(p => { p.hidden = p.dataset.panel !== mode; });
 
     transportEl.hidden = mode === 'clock' || mode === 'alarms';
     lapBtn.hidden = mode !== 'stopwatch';
+    addMinuteBtn.hidden = mode !== 'countdown';
     sessionDotsEl.hidden = mode !== 'pomodoro';
     clockMetaEl.hidden = mode !== 'clock';
     $('ringWrap').className = 'ring-wrap mode-' + mode;
@@ -154,14 +206,42 @@
     // Reset stage visuals to that mode's controller
     controllers[mode].onEnter();
     positionIndicator();
+
+    requestAnimationFrame(() => requestAnimationFrame(() => stageEl.classList.remove('mode-switching')));
   }
 
-  switcherItems.forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+  switcherItems.forEach(btn => btn.addEventListener('click', () => { haptic(); setMode(btn.dataset.mode); }));
   window.addEventListener('resize', positionIndicator);
+  // Fonts loading after first paint can shift tab widths slightly.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(positionIndicator).catch(() => {});
 
-  startBtn.addEventListener('click', () => controllers[currentMode].onStart?.());
-  resetBtn.addEventListener('click', () => controllers[currentMode].onReset?.());
-  lapBtn.addEventListener('click', () => controllers.stopwatch.onLap());
+  startBtn.addEventListener('click', () => { haptic(); controllers[currentMode].onStart?.(); });
+  resetBtn.addEventListener('click', () => { haptic(); controllers[currentMode].onReset?.(); });
+  lapBtn.addEventListener('click', () => { haptic(); controllers.stopwatch.onLap(); });
+  addMinuteBtn.addEventListener('click', () => { haptic(); controllers.countdown.onAddMinute?.(); });
+
+  /* ---------- Keyboard shortcuts (desktop) ---------- */
+  document.addEventListener('keydown', (e) => {
+    const ringOverlay = $('alarmRingOverlay');
+    if (ringOverlay && !ringOverlay.hidden) {
+      if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); controllers.alarms.stopRinging(); }
+      return;
+    }
+    const tag = (e.target && e.target.tagName) || '';
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA';
+    if (typing) return;
+    if (e.code === 'Space' && currentMode !== 'clock' && currentMode !== 'alarms') {
+      e.preventDefault();
+      controllers[currentMode].onStart?.();
+    } else if ((e.key === 'r' || e.key === 'R') && currentMode !== 'clock' && currentMode !== 'alarms') {
+      controllers[currentMode].onReset?.();
+    } else if ((e.key === 'l' || e.key === 'L') && currentMode === 'stopwatch') {
+      controllers.stopwatch.onLap();
+    } else if (e.key >= '1' && e.key <= '5') {
+      const idx = Number(e.key) - 1;
+      if (modes[idx]) setMode(modes[idx]);
+    }
+  });
 
   /* ---------- 3. Clock ---------- */
 
@@ -317,7 +397,7 @@
     function render() {
       digitsEl.textContent = fmtHMS(remainingSec);
       subLabelEl.textContent = running ? 'Counting down' : 'Ready';
-      setRing(remainingSec / totalSec, 'var(--brass)');
+      setRing(remainingSec / totalSec, 'url(#ringGradBrass)');
       startBtn.textContent = running ? 'Pause' : (remainingSec < totalSec ? 'Resume' : 'Start');
       startBtn.classList.toggle('is-running', running);
     }
@@ -372,6 +452,14 @@
         digitsEl.classList.remove('pulse');
         remainingSec = totalSec = readInputs() || totalSec;
         render();
+      },
+      onAddMinute() {
+        remainingSec += 60;
+        totalSec = Math.max(totalSec, remainingSec);
+        digitsEl.classList.remove('pulse');
+        if (!running) { subLabelEl.textContent = 'Ready'; startBtn.textContent = 'Resume'; }
+        render();
+        toast('+1 minute added');
       }
     };
   })();
@@ -408,7 +496,7 @@
       const { base, cs } = fmtStopwatch(elapsed);
       digitsEl.innerHTML = `${base}<span class="digits-cs">.${cs}</span>`;
       subLabelEl.textContent = running ? 'Running' : (elapsed > 0 ? 'Paused' : 'Ready');
-      setRing((elapsed % 60) / 60, 'var(--focus-navy)');
+      setRing((elapsed % 60) / 60, 'url(#ringGradNavy)');
       setTick((elapsed % 60) / 60);
       startBtn.textContent = running ? 'Pause' : (elapsed > 0 ? 'Resume' : 'Start');
       startBtn.classList.toggle('is-running', running);
@@ -500,7 +588,8 @@
     function render() {
       digitsEl.textContent = fmtHMS(remainingSec);
       subLabelEl.textContent = `${labels[phase]} \u00b7 round ${round} of ${settings().rounds}`;
-      setRing(remainingSec / totalSec, phase === 'focus' ? 'var(--brass)' : 'var(--focus-navy)');
+      setRing(remainingSec / totalSec, phase === 'focus' ? 'url(#ringGradBrass)' : 'url(#ringGradNavy)');
+      $('ringWrap').classList.toggle('on-break', phase !== 'focus');
       startBtn.textContent = running ? 'Pause' : (remainingSec < totalSec ? 'Resume' : 'Start');
       startBtn.classList.toggle('is-running', running);
       renderDots();
@@ -570,16 +659,25 @@
     let selectedDays = new Set();
     let checkTimer = null;
     let lastFiredMinute = null;
+    let ringingAlarm = null;
+    let ringRepeat = null;
+    let snoozeTimer = null;
 
     const timeIn = $('alarmTime');
     const labelIn = $('alarmLabel');
     const dayButtons = Array.from(document.querySelectorAll('.day-chip'));
     const listEl = $('alarmsList');
+    const overlay = $('alarmRingOverlay');
+    const overlayTime = $('alarmRingTime');
+    const overlayLabel = $('alarmRingLabel');
+    const stopBtn = $('alarmStopBtn');
+    const snoozeBtn = $('alarmSnoozeBtn');
 
     dayButtons.forEach(btn => btn.addEventListener('click', () => {
       const d = Number(btn.dataset.day);
       if (selectedDays.has(d)) { selectedDays.delete(d); btn.classList.remove('active'); }
       else { selectedDays.add(d); btn.classList.add('active'); }
+      haptic();
     }));
 
     $('addAlarmBtn').addEventListener('click', () => {
@@ -600,7 +698,43 @@
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
+      haptic();
       toast('Alarm added');
+    });
+
+    // Full-screen ringing state — replaces a single beep-and-toast with
+    // something the person can actually act on while it's going off.
+    function ringOnce() {
+      beep({ count: 3, freq: 660, gap: 0.2 });
+    }
+
+    function openRing(alarm) {
+      ringingAlarm = alarm;
+      overlayTime.textContent = alarm.time;
+      overlayLabel.textContent = alarm.label || 'Alarm';
+      overlay.hidden = false;
+      notify('Timekeeper alarm', alarm.label || 'Alarm');
+      ringOnce();
+      clearInterval(ringRepeat);
+      ringRepeat = setInterval(ringOnce, 3200);
+    }
+
+    function closeRing() {
+      overlay.hidden = true;
+      clearInterval(ringRepeat);
+      ringRepeat = null;
+      ringingAlarm = null;
+    }
+
+    stopBtn.addEventListener('click', () => { haptic(); closeRing(); });
+    snoozeBtn.addEventListener('click', () => {
+      haptic();
+      const snoozed = ringingAlarm;
+      closeRing();
+      if (!snoozed) return;
+      toast('Snoozed for 5 minutes');
+      clearTimeout(snoozeTimer);
+      snoozeTimer = setTimeout(() => openRing(snoozed), 5 * 60 * 1000);
     });
 
     function dayName(d) { return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]; }
@@ -661,27 +795,25 @@
     }
 
     function checkAlarms() {
+      if (ringingAlarm) return; // one ringing takeover at a time
       const now = new Date();
       const key = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + '-' + now.getHours() + '-' + now.getMinutes();
       if (key === lastFiredMinute) return;
       const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
       const day = now.getDay();
-      list.forEach(alarm => {
-        if (!alarm.enabled || alarm.time !== hhmm) return;
-        if (alarm.days.length > 0 && !alarm.days.includes(day)) return;
-        lastFiredMinute = key;
-        beep({ count: 4, freq: 660, gap: 0.18 });
-        notify('Timekeeper alarm', alarm.label || 'Alarm');
-        toast(`\u23f0 ${alarm.label || 'Alarm'}`);
-        if (alarm.days.length === 0) { alarm.enabled = false; store.set('alarms', list); render(); }
-      });
+      const due = list.find(a => a.enabled && a.time === hhmm && (a.days.length === 0 || a.days.includes(day)));
+      if (!due) return;
+      lastFiredMinute = key;
+      if (due.days.length === 0) { due.enabled = false; store.set('alarms', list); render(); }
+      openRing(due);
     }
 
     checkTimer = setInterval(checkAlarms, 1000);
 
     return {
       onEnter() { render(); },
-      onExit() { /* keep checking in background */ }
+      onExit() { /* keep checking in background */ },
+      stopRinging() { if (ringingAlarm) closeRing(); }
     };
   })();
 

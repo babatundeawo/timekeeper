@@ -1,22 +1,37 @@
 # Timekeeper
 
 A clock, countdown, stopwatch, focus timer, and alarms — one quiet instrument,
-no build step, no dependencies beyond two Google Fonts. White background,
-one signature brass ring that every mode reuses as its progress indicator.
+no build step, no dependencies beyond two Google Fonts. Paper-and-brass by
+day, ink-and-brass by night, with one signature ring that every mode reuses
+as its progress indicator.
 
 ## Modes
 
 - **Clock** — live time with a date line underneath, optional 24-hour display.
   The ring sweeps once per minute like a slow watch bezel.
 - **Countdown** — quick-start chips (5/10/15/25/45 min) plus a manual
-  hr/min/sec entry. Save any custom duration as a new chip. Ring depletes
-  as time runs out; a chime and a gentle pulse mark zero.
+  hr/min/sec entry. Save any custom duration as a new chip, or add a minute
+  on the fly while it's running. Ring depletes as time runs out; a chime
+  and a gentle pulse mark zero.
 - **Stopwatch** — start/pause/reset with lap recording, most recent lap on top.
 - **Focus (Pomodoro)** — configurable focus/short-break/long-break lengths
   and round count, with session dots showing where you are in the cycle.
   Auto-advances between phases.
 - **Alarms** — set a time, an optional label, and optional repeat days.
-  Rings with a chime and a browser notification while the app is open.
+  When one fires it takes over the screen with a repeating chime until you
+  stop it or snooze for 5 minutes, plus a browser notification while the
+  app is open.
+
+## Interface niceties
+
+- **Dark mode** — follows your system setting by default; the moon/sun
+  button in the header overrides it and remembers your choice.
+- **Sound toggle** — mute every chime and alarm from the header without
+  touching your device's volume.
+- **Keyboard shortcuts** (desktop) — `Space` start/pause, `R` reset, `L`
+  lap (stopwatch), `1`–`5` jump between modes, `Esc`/`Enter` dismiss a
+  ringing alarm.
+- Light haptic feedback on supported touchscreens for the main actions.
 
 All settings, presets, and alarms are saved to the browser's local storage,
 so they persist between visits on the same device.
@@ -103,11 +118,16 @@ timekeeper/
 
 ## Design notes
 
-Palette is ink (`#14161a`) and brass (`#b08d57`) on white paper, with a
-deep navy accent for anything that isn't focus/countdown-flavored (the
-stopwatch, break phases). Display type is Space Grotesk with tabular
-figures for the big readout; IBM Plex Sans for labels; IBM Plex Mono for
-timestamps and inputs, for an instrument-panel feel. The one animated
-signature element — a brass ring that fills or depletes around the
-digits — is reused, with different meanings, across every mode, so the
-app stays visually consistent while everything around it stays quiet.
+Palette is ink (`#14161a`) and brass (`#b08d57`) on paper, with a deep navy
+accent for anything that isn't focus/countdown-flavored (the stopwatch,
+break phases); dark mode inverts to ink-toned paper with the same brass
+and a lighter navy so both stay legible. Display type is Space Grotesk
+with tabular figures for the big readout; IBM Plex Sans for labels; IBM
+Plex Mono for timestamps and inputs, for an instrument-panel feel. The one
+animated signature element — a brass-gradient ring that fills or depletes
+around the digits, seated on a soft ambient glow — is reused, with
+different meanings, across every mode, so the app stays visually
+consistent while everything around it stays quiet. The mode switcher is a
+segmented control with a sliding pill rather than a bare underline, panels
+and lists fade in on entry, and buttons lift and spring on press — all
+kept subtle enough not to fight the instrument-panel feel.
