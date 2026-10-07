@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer push replaces a queued one.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JavaScript syntax check
+        run: |
+          for f in site/js/*.js site/service-worker.js; do node --check "$f"; done
+
+      - name: Validate manifest and sitemap
+        run: |
+          python3 -c "import json; json.load(open('site/manifest.json'))"
+          python3 -c "import xml.dom.minidom as m; m.parse('site/sitemap.xml')"
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress --root-dir "$GITHUB_WORKSPACE/site" 'site/index.html' 'site/manifest.json'
+          fail: true
+
+      - name: Lighthouse report
+        uses: treosh/lighthouse-ci-action@v12
+        continue-on-error: true
+        with:
+          configPath: .lighthouserc.json
+          uploadArtifacts: true
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: checks
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
