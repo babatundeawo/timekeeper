@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Checks
+  build:
+    name: Build and check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -31,10 +31,33 @@ jobs:
           python3 -c "import json; json.load(open('site/manifest.json'))"
           python3 -c "import xml.dom.minidom as m; m.parse('site/sitemap.xml')"
 
+      - name: Assemble the site into dist
+        env:
+          # Set a repository variable named SITE_BASE (for example "/") when using a custom domain.
+          BASE: ${{ vars.SITE_BASE || format('/{0}/', github.event.repository.name) }}
+        run: |
+          rm -rf dist && cp -r site dist
+          mkdir -p dist/fonts
+          # Self-hosted fonts from Fontsource (SIL Open Font License). Fail-soft: the site falls back to system fonts.
+          if (mkdir -p /tmp/fonts && cd /tmp/fonts \
+              && npm pack @fontsource-variable/geist @fontsource-variable/geist-mono --silent >/dev/null \
+              && for t in *.tgz; do mkdir "x-$t" && tar -xzf "$t" -C "x-$t"; done \
+              && cp x-fontsource-variable-geist-[0-9]*/package/files/geist-latin-wght-normal.woff2 /tmp/geist.woff2 \
+              && cp x-fontsource-variable-geist-mono-*/package/files/geist-mono-latin-wght-normal.woff2 /tmp/geist-mono.woff2); then
+            cp /tmp/geist.woff2 dist/fonts/geist.woff2
+            cp /tmp/geist-mono.woff2 dist/fonts/geist-mono.woff2
+          else
+            echo "::warning::Could not download Geist fonts. The site will use system fonts until the next successful build."
+          fi
+          # A fresh cache name per release, so returning visitors always get the update prompt.
+          sed -i "s/__BUILD__/${GITHUB_SHA::10}/" dist/service-worker.js
+          # The 404 page lives at any depth, so it needs the absolute base path.
+          sed -i "s#/timekeeper/#${BASE}#g" dist/404.html
+
       - name: Check links
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --offline --no-progress --root-dir "$GITHUB_WORKSPACE/site" 'site/index.html' 'site/manifest.json'
+          args: --offline --no-progress --root-dir "$GITHUB_WORKSPACE/dist" 'dist/index.html' 'dist/offline.html' 'dist/manifest.json'
           fail: true
 
       - name: Lighthouse report
@@ -44,10 +67,24 @@ jobs:
           configPath: .lighthouserc.json
           uploadArtifacts: true
 
+      - name: Upload built site for review (pull requests)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: built-site
+          path: dist
+
+      - uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: dist
+
   deploy:
     name: Deploy to GitHub Pages
-    needs: checks
-    if: github.ref == 'refs/heads/main'
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -56,10 +93,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
       - id: deployment
         uses: actions/deploy-pages@v5

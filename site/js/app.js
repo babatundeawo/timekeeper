@@ -197,6 +197,8 @@
   const stageEl = $('stage');
   const addMinuteBtn = $('addMinuteBtn');
   let currentMode = store.get('mode', 'clock');
+  const requestedMode = new URLSearchParams(location.search).get('mode');
+  if (['clock', 'countdown', 'stopwatch', 'pomodoro', 'alarms'].includes(requestedMode)) currentMode = requestedMode;
 
   function positionIndicator() {
     const active = switcherItems.find(b => b.dataset.mode === currentMode);
@@ -880,30 +882,70 @@
 
   const controllers = { clock, countdown, stopwatch, pomodoro, alarms };
 
-  /* ---------- 8. PWA install + service worker ---------- */
+  /* ---------- 8. PWA install, updates, sharing ---------- */
 
   let deferredPrompt = null;
   const installBtn = $('installBtn');
+  const iosGuide = $('iosGuide');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    installBtn.hidden = false;
+    if (!isStandalone) installBtn.hidden = false;
   });
+
+  // iOS has no install event, so show the button and explain Add to Home Screen.
+  if (isIOS && !isStandalone && typeof iosGuide.showModal === 'function') {
+    installBtn.hidden = false;
+  }
 
   installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    installBtn.hidden = true;
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.hidden = true;
+    } else if (isIOS) {
+      iosGuide.showModal();
+    }
   });
-
+  $('iosClose').addEventListener('click', () => iosGuide.close());
   window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
 
+  const shareBtn = $('shareBtn');
+  if (navigator.share) {
+    shareBtn.hidden = false;
+    shareBtn.addEventListener('click', () => {
+      navigator.share({ title: document.title, url: location.origin + location.pathname }).catch(() => {});
+    });
+  }
+
   if ('serviceWorker' in navigator) {
+    const updateBar = $('updateBar');
+    let reloading = false;
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => { /* offline install still optional */ });
+      navigator.serviceWorker.register('service-worker.js').then((reg) => {
+        const offer = (worker) => {
+          updateBar.hidden = false;
+          $('updateBtn').onclick = () => worker.postMessage('SKIP_WAITING');
+        };
+        if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+        reg.addEventListener('updatefound', () => {
+          const w = reg.installing;
+          if (!w) return;
+          w.addEventListener('statechange', () => {
+            if (w.state === 'installed' && navigator.serviceWorker.controller) offer(w);
+          });
+        });
+      }).catch(() => { /* the site still works without offline support */ });
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      location.reload();
     });
   }
 

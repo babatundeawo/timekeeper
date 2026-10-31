@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Timekeeper: clock, countdown, stopwatch, focus timer and alarms</title>
 <meta name="description" content="A clock, countdown, stopwatch, Pomodoro timer, and alarms, in one quiet instrument. Free, private, and works offline.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="canonical" href="https://babatundeawo.github.io/timekeeper/">
 <meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
@@ -32,9 +32,6 @@
 <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/style.css">
 
@@ -223,6 +220,7 @@
   </section>
 
   <footer class="site-footer">
+    <p><button class="link-btn" id="shareBtn" type="button" hidden>Share Timekeeper</button></p>
     <p>Timekeeper is free and open source. <a href="https://github.com/babatundeawo/timekeeper" target="_blank" rel="noopener noreferrer">View the code on GitHub</a></p>
   </footer>
 
@@ -245,6 +243,21 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="update-bar" id="updateBar" role="status" hidden>
+  <span>A new version is ready.</span>
+  <button class="btn btn-primary" id="updateBtn" type="button">Refresh</button>
+</div>
+
+<dialog class="ios-guide" id="iosGuide" aria-labelledby="iosTitle">
+  <h2 id="iosTitle">Add Timekeeper to your Home Screen</h2>
+  <ol>
+    <li>Open this page in <strong>Safari</strong>.</li>
+    <li>Tap the <strong>Share</strong> button (a square with an arrow pointing up).</li>
+    <li>Scroll down and tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+  </ol>
+  <button class="btn btn-primary" id="iosClose" type="button">Got it</button>
+</dialog>
 
 <script src="js/app.js"></script>
 </body>

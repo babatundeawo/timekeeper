@@ -17,24 +17,19 @@ You should see the Source box now read "GitHub Actions". The old setting publish
 
 Optional but recommended, in **Settings > Code security**: switch on **Dependabot alerts** and **Secret scanning** (and **Push protection** if offered). Each is a single toggle.
 
-## Put the redesign online safely
+## Put the update online safely (GitHub Desktop)
 
-The live site does not change until you merge. To create the pull request from the delivered files:
+1. Open **GitHub Desktop** and make sure the **timekeeper** repository is selected.
+2. Click **Current Branch**, then **New Branch**, type `rebrand/premium-v2`, and click **Create Branch**.
+3. Open the repository folder in File Explorer. In the **View** menu choose **Show > Hidden items**, so the `.github` folder is visible.
+4. Extract the delivered ZIP into that folder. If Windows asks about existing files, choose **Replace the files in the destination**.
+5. Back in GitHub Desktop you should see a list of changed files. Type `Upgrade: offline page, update prompt, self-hosted fonts` in the **Summary** box and click **Commit to rebrand/premium-v2**.
+6. Click **Publish branch**, then **Create Pull Request**. This opens github.com.
+7. On github.com click **Create pull request**. Wait for the checks to finish (green tick).
 
-1. On the repository home page click the branch button (it says **main**), type `rebrand/premium-redesign`, and click **Create branch: rebrand/premium-redesign**.
-2. Make sure that branch is selected. Click **Add file > Upload files**.
-3. Unzip the delivered `timekeeper-rebrand.zip` on your computer, then drag the folders and files inside it (`site`, `docs`, `.github`, `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.gitignore`, `.lighthouserc.json`) into the upload area. Dragging whole folders keeps their structure. If your computer hides the `.github` folder, enable "show hidden files" first.
-4. Click **Commit changes** at the bottom. Choose **Commit directly to the rebrand/premium-redesign branch**.
-5. Delete the old files that the redesign moved: open each of `css`, `js`, `icons`, `index.html`, `manifest.json`, `service-worker.js` and `gen_icons.py` in the **rebrand/premium-redesign** branch, click the three dots (**...**) at the top right of the file, choose **Delete file**, and commit to the same branch. For folders, delete each file inside; the folder disappears when empty.
-6. Click **Pull requests > New pull request**, set **compare** to `rebrand/premium-redesign`, and click **Create pull request**.
+GitHub Pages cannot preview a pull request. To look at the build first, open the pull request's **Checks** tab, open the **Deploy** run and download the **built-site** artifact at the bottom of the run page. Or merge and roll back if you dislike it.
 
-You should see the checks run at the bottom of the pull request. A green tick means they passed.
-
-## Review, then merge or discard
-
-GitHub Pages cannot host a separate preview of a pull request. To review safely, read the **Files changed** tab, and open the **Checks** tab for the Lighthouse report link.
-
-- To publish: finish the one-time setup above, then click **Merge pull request > Confirm merge**.
+- To publish: click **Merge pull request > Confirm merge**.
 - To discard: click **Close pull request**. Nothing on the live site changes.
 
 ## Check that a deployment worked
@@ -47,7 +42,7 @@ To read an error, click the red run, click the failed step (it has a red cross),
 
 ## Update content
 
-Open the file on github.com, click the pencil icon, edit, then **Commit changes**. Committing to `main` deploys automatically in about a minute. After changing any file under `site`, edit `service-worker.js` and change `timekeeper-v4` to `timekeeper-v5` (and so on) so returning visitors receive the update.
+Open the file on github.com, click the pencil icon, edit, then **Commit changes**. Committing to `main` deploys automatically in about a minute. Visitors get a "New version is ready" prompt automatically after each deployment. You never need to edit the cache name.
 
 ## Roll back
 
@@ -61,4 +56,4 @@ The previous version is restored and redeployed. All earlier versions also stay 
 1. In **Settings > Pages > Custom domain**, enter your domain and click **Save**.
 2. At your domain provider, add a `CNAME` record pointing `www` to `babatundeawo.github.io`.
 3. Tick **Enforce HTTPS** once it becomes available.
-4. Then update the address in `site/index.html` (the `canonical` and `og:` lines), `site/robots.txt`, `site/sitemap.xml`, and the `/timekeeper/` paths in `site/404.html`.
+4. In **Settings > Secrets and variables > Actions > Variables**, add a variable named `SITE_BASE` with the value `/`. Then update the address in `site/index.html` (the `canonical` and `og:` lines), `site/robots.txt`, `site/sitemap.xml`.

@@ -1,3 +1,8 @@
+/* Self-hosted fonts. The deploy workflow downloads them from Fontsource into /fonts;
+   if a file is missing the system font stack below takes over. */
+@font-face { font-family: 'Geist'; src: url('../fonts/geist.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Geist Mono'; src: url('../fonts/geist-mono.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+
 /* ============================================================
    Timekeeper — design tokens
    Concept: a precision instrument on paper. Ink and brass on
@@ -1190,4 +1195,32 @@ html { scroll-behavior: smooth; scrollbar-color: var(--line-strong) transparent;
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .btn, .icon-btn, .chip, .day-chip, .switcher-pill { transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================
+   Update bar, iOS install guide, link button, print
+   ============================================================ */
+.update-bar {
+  position: fixed; left: 50%; bottom: calc(20px + var(--safe-b, 0px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 20px;
+  background: var(--ink); color: var(--paper); border-radius: 100px; font-size: 13px;
+  box-shadow: var(--shadow-lg); z-index: 30; max-width: calc(100vw - 24px);
+}
+.update-bar[hidden] { display: none; }
+.update-bar .btn { min-height: 44px; }
+.ios-guide {
+  max-width: min(420px, calc(100vw - 32px)); border: 1px solid var(--line, currentColor); border-radius: 20px;
+  padding: 24px; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-lg);
+}
+.ios-guide::backdrop { background: rgb(0 0 0 / 0.5); }
+.ios-guide h2 { font-size: 18px; margin: 0 0 12px; }
+.ios-guide ol { margin: 0 0 18px; padding-left: 20px; line-height: 1.6; }
+.link-btn {
+  background: none; border: 0; padding: 12px 8px; min-height: 44px; font: inherit; color: inherit;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.link-btn:focus-visible { outline: 2px solid var(--brass-text, currentColor); outline-offset: 2px; }
+@media print {
+  .header-actions, .switcher, .transport, .kbd-hint, .update-bar, .toast, .grain, .site-footer, .skip-link { display: none !important; }
+  body { background: #fff; color: #000; }
 }

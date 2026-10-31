@@ -41,14 +41,14 @@ Timers keep running when you switch modes or move to another tab. Settings, pres
 
 1. Open the [live site](https://babatundeawo.github.io/timekeeper/) and pick a mode from the row of tabs.
 2. Press **Start** on Countdown, Stopwatch or Focus. On a keyboard, `Space` starts or pauses, `R` resets, `L` records a lap, and `1` to `5` switch modes. Arrow keys move between tabs.
-3. To install, use the **Install app** button in the header, or your browser's install option (Safari: File > Add to Dock; iOS and Android: Add to Home Screen).
+3. To install, use the **Install app** button in the header, or your browser's install option (Safari on iPhone: Share > Add to Home Screen).
 
 Alarms ring only while Timekeeper is open in a browser tab or the installed window. The site has no server, so it cannot wake a closed app.
 
 ## Tech stack
 
 - Plain HTML, CSS and JavaScript with no runtime dependencies
-- Geist and Geist Mono from Google Fonts
+- Self-hosted Geist and Geist Mono (fetched from Fontsource during the build)
 - Web Audio, Notifications and Service Worker APIs
 - GitHub Actions and GitHub Pages for checks and hosting
 
@@ -60,7 +60,8 @@ site/                  The website exactly as it is served
 ├── css/style.css      Design tokens and styles
 ├── js/app.js          Modes, timers, alarms and install prompt
 ├── js/theme-init.js   Applies the saved theme before first paint
-├── service-worker.js  Offline caching
+├── offline.html       Page shown when offline and not yet cached
+├── service-worker.js  Offline caching and update prompt
 ├── manifest.json      Web app manifest
 └── icons/             Favicon, app icons and social preview image
 docs/                  Guides for maintaining the site
