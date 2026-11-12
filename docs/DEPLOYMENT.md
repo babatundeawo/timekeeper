@@ -6,7 +6,7 @@ Everything here uses only the GitHub website. You never need a terminal.
 
 Whenever a change lands on the `main` branch, GitHub automatically checks the site and publishes the `site` folder to GitHub Pages. The site address is `https://babatundeawo.github.io/timekeeper/`.
 
-## One-time setup (do this before you merge the redesign)
+## One-time setup (do this before you merge the first redesign)
 
 1. Open your repository on github.com.
 2. Click **Settings** (top row of tabs).
@@ -20,10 +20,10 @@ Optional but recommended, in **Settings > Code security**: switch on **Dependabo
 ## Put the update online safely (GitHub Desktop)
 
 1. Open **GitHub Desktop** and make sure the **timekeeper** repository is selected.
-2. Click **Current Branch**, then **New Branch**, type `rebrand/premium-v2`, and click **Create Branch**.
+2. Click **Current Branch**, then **New Branch**, type a short name such as `update/my-change`, and click **Create Branch**.
 3. Open the repository folder in File Explorer. In the **View** menu choose **Show > Hidden items**, so the `.github` folder is visible.
 4. Extract the delivered ZIP into that folder. If Windows asks about existing files, choose **Replace the files in the destination**.
-5. Back in GitHub Desktop you should see a list of changed files. Type `Upgrade: offline page, update prompt, self-hosted fonts` in the **Summary** box and click **Commit to rebrand/premium-v2**.
+5. Back in GitHub Desktop you should see a list of changed files. Type a short description such as `Update timer presets` in the **Summary** box and click **Commit to** your branch name.
 6. Click **Publish branch**, then **Create Pull Request**. This opens github.com.
 7. On github.com click **Create pull request**. Wait for the checks to finish (green tick).
 
@@ -37,6 +37,8 @@ GitHub Pages cannot preview a pull request. To look at the build first, open the
 1. Click the **Actions** tab.
 2. Open the latest run named **Deploy**.
 3. A green tick means the site is live. A red cross means something failed.
+
+The run also has a **Browser smoke test** step. It opens the site in a real browser and tries every mode. If it shows a yellow warning, the site is still published, but open the step and read it, because it names the feature that stopped working.
 
 To read an error, click the red run, click the failed step (it has a red cross), and read the last lines. The message names the file and problem. If **Check links** fails, a link or file path in `index.html` or `manifest.json` points at something that does not exist.
 
