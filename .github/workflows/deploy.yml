@@ -31,6 +31,11 @@ jobs:
           python3 -c "import json; json.load(open('site/manifest.json'))"
           python3 -c "import xml.dom.minidom as m; m.parse('site/sitemap.xml')"
 
+      # Fails with a readable list if a file is missing from the cache list, the manifest
+      # points at a missing icon, or a page uses inline styles that the site's own CSP blocks.
+      - name: Check the site files
+        run: node scripts/check-site.mjs site
+
       - name: Assemble the site into dist
         env:
           # Set a repository variable named SITE_BASE (for example "/") when using a custom domain.
@@ -53,6 +58,18 @@ jobs:
           sed -i "s/__BUILD__/${GITHUB_SHA::10}/" dist/service-worker.js
           # The 404 page lives at any depth, so it needs the absolute base path.
           sed -i "s#/timekeeper/#${BASE}#g" dist/404.html
+
+      # Opens the built site in real Chrome under the same /repository-name/ address that
+      # GitHub Pages uses, and tries every mode. A failure is shown as a warning and does
+      # not block publishing, because the browser itself can occasionally fail to start.
+      - name: Browser smoke test
+        continue-on-error: true
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          PLAYWRIGHT_MODULE: ${{ runner.temp }}/pw/node_modules/playwright-core/index.mjs
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pw" playwright-core
+          node scripts/smoke-test.mjs dist
 
       - name: Check links
         uses: lycheeverse/lychee-action@v2

@@ -1,7 +1,7 @@
 {
   "name": "Timekeeper",
   "short_name": "Timekeeper",
-  "description": "A clock, countdown, stopwatch, focus timer, and alarms, in one quiet instrument.",
+  "description": "A clock with world time zones, countdown timer, stopwatch, focus timer, and alarms, in one quiet instrument.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -41,8 +41,8 @@
   ],
   "shortcuts": [
     {
-      "name": "Countdown",
-      "short_name": "Countdown",
+      "name": "Timer",
+      "short_name": "Timer",
       "url": "./?mode=countdown",
       "icons": [
         {
@@ -87,6 +87,22 @@
           "type": "image/png"
         }
       ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Timekeeper on a desktop screen"
+    },
+    {
+      "src": "screenshots/narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Timekeeper on a phone"
     }
   ]
 }
